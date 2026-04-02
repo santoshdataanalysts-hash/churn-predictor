@@ -174,7 +174,11 @@ if uploaded_file is not None:
                 return "background-color: #ff4b2b; color: white"
             else:
                 return "background-color: #00c853; color: white"
-        styled_df = df[["customerID", "Prediction", "Confidence"]].style.applymap(
+        colomns_to_show = ["customerID", "Prediction"]
+
+        if "Confidence" in df.columns:
+            columns_to_show.append("Confidence")
+        styled_df = df[columns_to_show].style.applymap(
             color_prediction, subset=["Prediction"]
 )
 
