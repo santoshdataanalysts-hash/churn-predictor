@@ -7,24 +7,24 @@ import matplotlib.pyplot as plt
 st.markdown("""
 <style>
 
-/* 🔴 Full App Background (gradient) */
+/* Full App Background (gradient) */
 [data-testid="stAppViewContainer"] {
     background: linear-gradient(135deg, #0f2027, #2c5364, #000000);
     color: white;
 }
 
-/* 🔵 Sidebar */
+/* Sidebar */
 [data-testid="stSidebar"] {
     background: linear-gradient(180deg, #1a1a1a, #2b2b2b);
     color: white;
 }
 
-/* 🟢 Text color fix */
+/* Text color fix */
 h1, h2, h3, h4, h5, h6, p, label, div {
     color: white !important;
 }
 
-/* 🟣 Buttons */
+/* Buttons */
 .stButton>button {
     background: linear-gradient(45deg, #ff416c, #ff4b2b);
     color: white;
@@ -32,20 +32,20 @@ h1, h2, h3, h4, h5, h6, p, label, div {
     border: none;
 }
 
-/* 🟡 Upload box */
+/* Upload box */
 [data-testid="stFileUploader"] {
     background-color: rgba(255,255,255,0.05);
     padding: 10px;
     border-radius: 10px;
 }
 
-/* 🟠 Cards / info box */
+/* Cards / info box */
 .stAlert {
     background-color: rgba(255,255,255,0.1);
     color: white;
 }
 
-/* ⚫ Remove top gap */
+/* Remove top gap */
 .block-container {
     padding-top: 2rem;
 }
@@ -55,7 +55,7 @@ h1, h2, h3, h4, h5, h6, p, label, div {
 st.markdown("""
 <style>
 
-/* 🔥 Dataframe dark theme */
+/* Dataframe dark theme */
 [data-testid="stDataFrame"] {
     background-color: rgba(0,0,0,0.6) !important;
     color: white !important;
@@ -127,7 +127,7 @@ if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     
     if "Churn" not in df.columns:
-        st.error("❌ CSV must contain 'Churn' column")
+        st.error("CSV must contain 'Churn' column")
         st.stop()
 
     st.write(df.head())
@@ -147,7 +147,11 @@ if uploaded_file is not None:
     #Prediction button
     if st.button("Predict"):
 
-        X = df.drop(["Churn", "customerID"], axis=1)
+        X = df.drop(["Churn", "customerID"], axis=1, errors='ignore')
+
+        #Ensure numeric
+        X = X.apply(pd.to_numeric, errors='coerce')
+        X.fillna(0, inplace=True)
 
         with st.spinner("Predicting..."):
             predictions = model.predict(X)
@@ -157,7 +161,7 @@ if uploaded_file is not None:
         
         st.markdown("""
 <div style="background:#d4edda; padding:15px; border-radius:10px; color:#155724;">
-    ✅ Prediction Completed Successfully!
+    Prediction Completed Successfully!
 </div>
 """, unsafe_allow_html=True)
 
@@ -178,7 +182,7 @@ if uploaded_file is not None:
         csv = df.to_csv(index=False).encode('utf-8')
 
         st.download_button(
-    label="📥 Download Results",
+    label="Download Results",
     data=csv,
     file_name='churn_predictions.csv',
     mime='text/csv',
@@ -217,9 +221,9 @@ if uploaded_file is not None:
         st.pyplot(fig)
         st.markdown("---")
         # -------------------------
-# 📊 Feature Importance
+#Feature Importance
 # -------------------------
-        st.subheader("📊 Feature Importance")
+        st.subheader("Feature Importance")
 
         features = X.columns
 
