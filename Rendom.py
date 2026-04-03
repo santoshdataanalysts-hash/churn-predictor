@@ -3,249 +3,234 @@ import pandas as pd
 import pickle
 import matplotlib.pyplot as plt
 
-#background color
 st.markdown("""
 <style>
 
-/* Full App Background (gradient) */
+/* 🔥 Full Background Gradient */
 [data-testid="stAppViewContainer"] {
-    background: linear-gradient(135deg, #0f2027, #2c5364, #000000);
-    color: white;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
 }
 
-/* Sidebar */
+/* 🟣 Sidebar */
 [data-testid="stSidebar"] {
     background: linear-gradient(180deg, #1a1a1a, #2b2b2b);
-    color: white;
 }
 
-/* Text color fix */
-h1, h2, h3, h4, h5, h6, p, label, div {
+/* 🟢 Glass Card Effect */
+.block-container {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 25px;
+    backdrop-filter: blur(12px);
+}
+
+/* 🟡 Text color fix */
+h1, h2, h3, h4, h5, h6, p, label {
     color: white !important;
 }
 
-/* Buttons */
+/* 🔵 Button style */
 .stButton>button {
-    background: linear-gradient(45deg, #ff416c, #ff4b2b);
+    background: linear-gradient(45deg, #00c6ff, #0072ff);
     color: white;
     border-radius: 10px;
     border: none;
 }
 
-/* Upload box */
+/* 🟠 Upload box */
 [data-testid="stFileUploader"] {
-    background-color: rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.05);
     padding: 10px;
     border-radius: 10px;
 }
 
-/* Cards / info box */
-.stAlert {
-    background-color: rgba(255,255,255,0.1);
-    color: white;
-}
-
-/* Remove top gap */
-.block-container {
-    padding-top: 2rem;
-}
-
-</style>
-""", unsafe_allow_html=True)
-st.markdown("""
-<style>
-
-/* Dataframe dark theme */
-[data-testid="stDataFrame"] {
-    background-color: rgba(0,0,0,0.6) !important;
-    color: white !important;
-    border-radius: 10px;
-}
-
-/* Table text */
-[data-testid="stDataFrame"] div {
-    color: white !important;
-}
-
-/* Header row */
-[data-testid="stDataFrame"] thead {
-    background-color: #ff416c !important;
-    color: white !important;
-}
-
-/* Rows */
-[data-testid="stDataFrame"] tbody tr {
-    background-color: rgba(255,255,255,0.05);
-}
-
 </style>
 """, unsafe_allow_html=True)
 
-#Simple Login System
-
+# ---------------- SESSION ----------------
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
-def login():
-    st.title("Login")
+if "df_result" not in st.session_state:
+    st.session_state.df_result = None
 
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+
+# ---------------- LOGIN ----------------
+def login():
+    st.title("🔐 Login")
+
+    user = st.text_input("Username")
+    pwd = st.text_input("Password", type="password")
 
     if st.button("Login"):
-        if username == "admin" and password == "1234":
+        if user == "admin" and pwd == "1234":
             st.session_state.logged_in = True
-            st.success("Login Successful!")
             st.rerun()
         else:
-            st.error("Invalid Username or Password")
+            st.error("Wrong credentials")
 
-#agar user login nahi hai to login page dikhana hai
+
 if not st.session_state.logged_in:
     login()
     st.stop()
-st.sidebar.success("Logged in as Admin")
+
+st.sidebar.success("✅ Logged in")
 if st.sidebar.button("Logout"):
     st.session_state.logged_in = False
     st.rerun()
 
-st.markdown("""
-<h1 style='text-align:center; color:#4CAF50;'>
-AI Customer Churn Predictor
-</h1>
-""", unsafe_allow_html=True)
-st.info("Model Accuracy: ~82%")
 
-# Load model
-model = pickle.load(open("model.pkl", "rb"))
+# ---------------- TITLE ----------------
+st.markdown("<h1 style='text-align:center; color:#00c6ff;'>🚀 AI Customer Churn Predictor</h1>", unsafe_allow_html=True)
+st.success("Mst.titodel Accuracy: ~82%")
 
-# Upload CSV
-uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
+
+# ---------------- LOAD MODEL ----------------
+try:
+    model = pickle.load(open("model.pkl", "rb"))
+except:
+    st.error("❌ model.pkl file missing")
+    st.stop()
+
+
+# ---------------- FILE UPLOAD ----------------
+uploaded_file = st.file_uploader("📂 Upload CSV file", type=["csv"])
 
 if uploaded_file is not None:
 
-    df = pd.read_csv(uploaded_file)
-    
-    if "Churn" not in df.columns:
-        st.error("CSV must contain 'Churn' column")
+    try:
+        uploaded_file.seek(0)
+        df = pd.read_csv(uploaded_file, encoding="latin1")
+        df.columns = df.columns.str.strip()
+
+        st.write("📊 Preview", df.head())
+
+        if df.empty:
+            st.error("❌ CSV empty hai")
+            st.stop()
+
+    except Exception as e:
+        st.error(f"❌ File read error: {e}")
         st.stop()
 
-    st.write(df.head())
+    # ---------------- FIX CHURN COLUMN ----------------
+    if "Churn" not in df.columns:
+        possible = [col for col in df.columns if "churn" in col.lower()]
+        if possible:
+            df.rename(columns={possible[0]: "Churn"}, inplace=True)
+        else:
+            st.error("❌ CSV must contain 'Churn' column")
+            st.stop()
 
-    # Cleaning
-    df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors='coerce')
-    df.dropna(inplace=True)
+    # ---------------- CLEANING ----------------
+    if "TotalCharges" in df.columns:
+        df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce")
 
-    # Encoding
+    # ---------------- ENCODING ----------------
     from sklearn.preprocessing import LabelEncoder
-    le = LabelEncoder()
 
     for col in df.columns:
-        if df[col].dtype == 'object' and col not in ["customerID"]:
-            df[col] = le.fit_transform(df[col])
+        if df[col].dtype == "object" and col != "customerID":
+            df[col] = LabelEncoder().fit_transform(df[col])
 
-    #Prediction button
-    if st.button("Predict"):
+    # ---------------- PREDICT ----------------
+    if st.button("⚡ Run Prediction"):
 
-        X = df.drop(["Churn", "customerID"], axis=1, errors='ignore')
+        X = df.drop(["Churn", "customerID"], axis=1, errors="ignore")
+        X = X.apply(pd.to_numeric, errors="coerce").fillna(0)
 
-        #Ensure numeric
-        X = X.apply(pd.to_numeric, errors='coerce')
-        X.fillna(0, inplace=True)
+        preds = model.predict(X)
 
-        with st.spinner("Predicting..."):
-            predictions = model.predict(X)
+        df["Prediction"] = preds
+        df["Prediction"] = df["Prediction"].map({
+            1: "Will Leave",
+            0: "Will Stay"
+        })
 
-        df["Prediction"] = predictions
-        df["Prediction"] = df["Prediction"].map({1: "Will Leave", 0: "Will Stay"})
-        
-        st.markdown("""
-<div style="background:#d4edda; padding:15px; border-radius:10px; color:#155724;">
-    Prediction Completed Successfully!
-</div>
-""", unsafe_allow_html=True)
-
-        probs = model.predict_proba(X)
-
-        df["Confidence"] = probs.max(axis=1) * 100
-
-        def color_prediction(val):
-            if val == "Will Leave":
-                return "background-color: #ff4b2b; color: white"
-            else:
-                return "background-color: #00c853; color: white"
-        colomns_to_show = ["customerID", "Prediction"]
-
-        if "Confidence" in df.columns:
-            columns_to_show.append("Confidence")
-        styled_df = df[columns_to_show].style.applymap(
-            color_prediction, subset=["Prediction"]
-)
-
-        st.write(styled_df)
-        csv = df.to_csv(index=False).encode('utf-8')
-
-        st.download_button(
-    label="Download Results",
-    data=csv,
-    file_name='churn_predictions.csv',
-    mime='text/csv',
-)
-        # Display results
-        st.subheader("Results")
-        
-        st.dataframe(df[["customerID", "Prediction", "Confidence"]])
-
-        st.write("Total Customers:", len(df))
-
-        st.write("Will Stay:", (df["Prediction"].str.contains("Stay")).sum())
-        st.write("Will Leave:", (df["Prediction"].str.contains("Leave")).sum())
-    
-        col1, col2, col3 = st.columns(3)
-
-        col1.metric("Total Customers", len(df))
-        col2.metric("Will Stay", (predictions == 0).sum())
-        col3.metric("Will Leave", (predictions == 1).sum())
-        
-        #Graph added
-        st.subheader("Churn Analysis")
-        st.markdown("---")
-        churn_counts = df["Prediction"].value_counts()
-
-        fig, ax = plt.subplots()
-
-
-        ax.pie(
-            churn_counts,
-            labels=churn_counts.index,
-            autopct='%1.1f%%',
-            startangle=90)
-        ax.axis('equal')
-    
-        st.pyplot(fig)
-        st.markdown("---")
-        # -------------------------
-#Feature Importance
-# -------------------------
-        st.subheader("Feature Importance")
-
-        features = X.columns
-
-        if hasattr(model, "feature_importances_"):
-            importance = model.feature_importances_
-
-        elif hasattr(model, "coef_"):
-            importance = model.coef_[0]
-
+        # Confidence
+        if hasattr(model, "predict_proba"):
+            probs = model.predict_proba(X)
+            df["Confidence"] = probs.max(axis=1) * 100
         else:
-            importance = None
+            df["Confidence"] = 0
 
-        if importance is not None:
-            importance_df = pd.DataFrame({
-        "Feature": features,
-        "Importance": importance}).sort_values(by="Importance", ascending=False)
+        # Save result
+        st.session_state.df_result = df.copy()
 
-            st.bar_chart(importance_df.set_index("Feature"))
+        st.success("✅ Prediction Completed")
 
-        else:
-            st.warning("Feature importance not available")
+
+# ---------------- AFTER PREDICTION ----------------
+if st.session_state.df_result is not None:
+
+    df = st.session_state.df_result
+
+    # ---------------- FILTER ----------------
+    st.subheader("🔍 Filters")
+
+    search = st.text_input("Search Customer ID")
+
+    filtered_df = df.copy()
+
+    if search and "customerID" in df.columns:
+        filtered_df = filtered_df[
+            filtered_df["customerID"].astype(str).str.contains(search, case=False, na=False)
+        ]
+
+    filter_option = st.selectbox("Filter Prediction", ["All", "Will Stay", "Will Leave"])
+
+    if filter_option != "All":
+        filtered_df = filtered_df[filtered_df["Prediction"] == filter_option]
+
+    st.dataframe(filtered_df)
+
+    # ---------------- METRICS ----------------
+    st.subheader("📊 Summary")
+
+    total = len(df)
+    stay = (df["Prediction"] == "Will Stay").sum()
+    leave = (df["Prediction"] == "Will Leave").sum()
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Customers", total)
+    col2.metric("Will Stay", stay)
+    col3.metric("Will Leave", leave)
+
+    # ---------------- CHART ----------------
+    st.subheader("📊 Churn Analysis")
+
+    fig, ax = plt.subplots()
+    df["Prediction"].value_counts().plot.pie(autopct="%1.1f%%", ax=ax)
+    ax.axis("equal")
+
+    st.pyplot(fig)
+
+    # ---------------- FEATURE IMPORTANCE ----------------
+    st.subheader("📊 Feature Importance")
+
+    if hasattr(model, "feature_importances_"):
+        imp = model.feature_importances_
+    elif hasattr(model, "coef_"):
+        imp = model.coef_[0]
+    else:
+        imp = None
+
+    if imp is not None:
+        imp_df = pd.DataFrame({
+            "Feature": df.drop(["Prediction"], axis=1).columns[:len(imp)],
+            "Importance": imp
+        }).sort_values(by="Importance", ascending=False)
+
+        st.bar_chart(imp_df.set_index("Feature"))
+    else:
+        st.warning("Feature importance not available")
+
+    # ---------------- DOWNLOAD ----------------
+    csv = df.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        "📥 Download Results",
+        csv,
+        "churn_results.csv",
+        "text/csv"
+    )
